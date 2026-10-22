@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEKWORKS | Invoice Generator</title>
+  <style>
+    :root { --ink:#171717; --muted:#666; --line:#dedede; --paper:#fff; --bg:#f3f4f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:28px 14px; background:var(--bg); color:var(--ink); font:14px/1.45 Arial, Helvetica, sans-serif; }
+    .page { max-width:900px; margin:0 auto; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+    .toolbar h1 { font-size:20px; margin:0; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:1px solid var(--ink); border-radius:7px; background:var(--ink); color:white; padding:10px 14px; font-weight:700; cursor:pointer; }
+    button.secondary { background:white; color:var(--ink); }
+    .invoice { background:var(--paper); padding:38px; border:1px solid #e5e5e5; border-radius:10px; box-shadow:0 8px 30px #0000000a; }
+    .top { display:flex; justify-content:space-between; gap:24px; padding-bottom:24px; border-bottom:2px solid var(--ink); }
+    .brand { font-size:28px; letter-spacing:2px; font-weight:800; margin:0 0 5px; }
+    .muted { color:var(--muted); }
+    .editable { border:1px dashed transparent; border-radius:3px; padding:2px 4px; min-width:20px; }
+    .editable:focus { outline:none; border-color:#999; background:#fafafa; }
+    .invoice-title { text-align:right; }
+    .invoice-title h2 { font-size:30px; letter-spacing:2px; margin:0 0 10px; }
+    .meta-line { display:flex; justify-content:flex-end; gap:8px; align-items:center; margin:5px 0; }
+    .meta-line label { color:var(--muted); }
+    input, textarea { font:inherit; color:inherit; border:1px solid var(--line); border-radius:5px; padding:8px; width:100%; background:#fff; }
+    input:focus, textarea:focus { outline:2px solid #ddd; border-color:#777; }
+    .meta-line input { width:145px; }
+    .parties { display:grid; grid-template-columns:1fr 1fr; gap:32px; padding:24px 0; }
+    .section-label { text-transform:uppercase; font-size:11px; letter-spacing:1.5px; color:var(--muted); font-weight:700; margin:0 0 10px; }
+    .party input, .party textarea { margin-bottom:7px; }
+    .party textarea { resize:vertical; min-height:64px; }
+    table { width:100%; border-collapse:collapse; margin-top:4px; }
+    th { text-align:left; background:#f5f5f5; font-size:11px; text-transform:uppercase; letter-spacing:.7px; padding:11px 8px; border-bottom:1px solid var(--line); }
+    td { padding:8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    th:last-child, td:last-child { text-align:right; }
+    .items input { border-color:transparent; padding:8px 5px; }
+    .items input:focus { border-color:#aaa; }
+    .items .qty, .items .price { text-align:right; min-width:70px; }
+    .remove { background:white; color:#777; border:1px solid var(--line); padding:5px 8px; border-radius:5px; }
+    .below { display:grid; grid-template-columns:1fr 280px; gap:30px; padding-top:22px; }
+    .notes textarea { min-height:95px; resize:vertical; }
+    .totals .row { display:flex; justify-content:space-between; gap:15px; padding:7px 0; }
+    .totals .row.total { border-top:2px solid var(--ink); margin-top:7px; padding-top:14px; font-size:18px; font-weight:800; }
+    .discount-wrap { display:flex; align-items:center; gap:8px; }
+    .discount-wrap input { width:75px; text-align:right; padding:5px; }
+    .footer { margin-top:32px; padding-top:14px; border-top:1px solid var(--line); text-align:center; font-size:12px; color:var(--muted); }
+    .add-row { margin-top:12px; }
+    .hint { font-size:12px; color:var(--muted); margin:8px 0 0; }
+    @media (max-width:650px) {
+      body { padding:14px 8px; }
+      .invoice { padding:20px 14px; }
+      .top { flex-direction:column; }
+      .invoice-title { text-align:left; }
+      .meta-line { justify-content:flex-start; }
+      .parties, .below { grid-template-columns:1fr; gap:18px; }
+      .items th, .items td { padding:5px 3px; }
+      .items input { padding:7px 2px; font-size:12px; }
+      .items .qty, .items .price { min-width:48px; }
+      .toolbar { align-items:flex-start; flex-direction:column; }
+      .brand { font-size:24px; }
+    }
+    @media print {
+      body { padding:0; background:white; }
+      .toolbar, .add-row, .remove-col, .hint { display:none !important; }
+      .page { max-width:none; }
+      .invoice { border:0; border-radius:0; box-shadow:none; padding:10mm; }
+      input, textarea { border-color:transparent !important; background:transparent !important; padding-left:2px; padding-right:2px; }
+      .editable { border-color:transparent !important; }
+      th { background:#f1f1f1 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      tr { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="toolbar">
+      <h1>TEKWORKS Invoice Generator</h1>
+      <div class="actions">
+        <button class="secondary" type="button" onclick="resetInvoice()">New invoice</button>
+        <button type="button" onclick="window.print()">Print / Save PDF</button>
+      </div>
+    </div>
+
+    <section class="invoice" id="invoice">
+      <header class="top">
+        <div>
+          <h1 class="brand editable" contenteditable="false">Tekworks.LK</h1>
+          <div class="editable" contenteditable="false">AT Ventures Pvt Ltd</div>
+          <div class="editable muted" contenteditable="false">No 43, St. Winfred Estate, Kandakade Road,</div>
+          <div class="editable muted" contenteditable="false">Korosduwa, Wadduwa, Sri Lanka</div>
+          <div class="editable muted" contenteditable="false">Phone: +94 71 135 0060</div>
+          <div class="editable muted" contenteditable="false">Email: atventureslk@gmail.com</div>
+        </div>
+        <div class="invoice-title">
+          <h2>INVOICE</h2>
+          <div class="meta-line"><label for="invoiceNo">Invoice #</label><input id="invoiceNo" value="TW-0001" /></div>
+          <div class="meta-line"><label for="invoiceDate">Date</label><input id="invoiceDate" type="date" /></div>
+          <div class="meta-line"><label for="dueDate">Due date</label><input id="dueDate" type="date" /></div>
+        </div>
+      </header>
+
+      <section class="parties">
+        <div class="party">
+          <p class="section-label">Bill to</p>
+          <input id="customerName" placeholder="Customer name" />
+          <textarea id="customerAddress" placeholder="Customer address"></textarea>
+          <input id="customerPhone" placeholder="Phone number" />
+          <input id="customerEmail" type="email" placeholder="Email address (optional)" />
+        </div>
+        <div class="party">
+          <p class="section-label">Payment details</p>
+          <input id="paymentMethod" value="Bank transfer / Cash" placeholder="Payment method" />
+          <input id="paymentInfo" placeholder="Bank details or payment reference" />
+          <input id="currency" value="LKR" placeholder="Currency (e.g. LKR)" />
+          <p class="hint">Change the currency label to match the invoice. Amounts are calculated as entered.</p>
+        </div>
+      </section>
+
+      <table class="items">
+        <thead><tr><th style="width:44%">Description</th><th style="width:13%;text-align:right">Qty</th><th style="width:20%;text-align:right">Unit price</th><th style="width:18%;text-align:right">Amount</th><th class="remove-col" style="width:5%"></th></tr></thead>
+        <tbody id="itemRows"></tbody>
+      </table>
+      <button class="secondary add-row" type="button" onclick="addItem()">+ Add item</button>
+
+      <section class="below">
+        <div class="notes">
+          <p class="section-label">Notes / terms</p>
+          <textarea id="notes" placeholder="Thank you for your business. Please keep this invoice for your records."></textarea>
+        </div>
+        <div class="totals">
+          <div class="row"><span>Subtotal</span><strong id="subtotal">LKR 0.00</strong></div>
+          <div class="row"><span>Discount</span><div class="discount-wrap"><input id="discount" type="number" min="0" step="0.01" value="0" aria-label="Discount amount" /><strong id="discountDisplay">LKR 0.00</strong></div></div>
+          <div class="row total"><span>Total due</span><strong id="grandTotal">LKR 0.00</strong></div>
+        </div>
+      </section>
+      <footer class="footer"><span class="editable" contenteditable="true">Thank you for choosing TEKWORKS.</span></footer>
+    </section>
+    <p class="hint">Tip: click the company text to edit it. Use “Print / Save PDF” and select “Save as PDF” in your browser’s print dialog.</p>
+  </main>
+
+  <script>
+    const rows = document.getElementById('itemRows');
+    const currencyInput = document.getElementById('currency');
+    const money = amount => `${(currencyInput.value.trim() || 'LKR')} ${Number(amount || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    function addItem(description = '', qty = 1, price = 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="description" placeholder="Product / service" value=""></td>
+        <td><input class="qty" type="number" min="0" step="1" value="${qty}" aria-label="Quantity"></td>
+        <td><input class="price" type="number" min="0" step="0.01" value="${price}" aria-label="Unit price"></td>
+        <td class="line-total">${money(0)}</td>
+        <td class="remove-col"><button class="remove" type="button" aria-label="Remove item">×</button></td>`;
+      tr.querySelector('.description').value = description;
+      tr.querySelectorAll('input').forEach(input => input.addEventListener('input', calculate));
+      tr.querySelector('.remove').addEventListener('click', () => { tr.remove(); if (!rows.children.length) addItem(); calculate(); });
+      rows.appendChild(tr);
+      calculate();
+    }
+
+    function calculate() {
+      let subtotal = 0;
+      [...rows.querySelectorAll('tr')].forEach(tr => {
+        const qty = Math.max(0, Number(tr.querySelector('.qty').value) || 0);
+        const price = Math.max(0, Number(tr.querySelector('.price').value) || 0);
+        const line = qty * price;
+        tr.querySelector('.line-total').textContent = money(line);
+        subtotal += line;
+      });
+      const discount = Math.min(subtotal, Math.max(0, Number(document.getElementById('discount').value) || 0));
+      document.getElementById('subtotal').textContent = money(subtotal);
+      document.getElementById('discountDisplay').textContent = money(discount);
+      document.getElementById('grandTotal').textContent = money(subtotal - discount);
+    }
+
+    function resetInvoice() {
+      if (!confirm('Start a new invoice? Current invoice details will be cleared.')) return;
+      document.getElementById('invoiceNo').value = 'TW-' + String(Date.now()).slice(-6);
+      document.getElementById('invoiceDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('dueDate').value = '';
+      ['customerName','customerAddress','customerPhone','customerEmail','paymentInfo','notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('paymentMethod').value = 'Bank transfer / Cash';
+      document.getElementById('discount').value = 0;
+      rows.innerHTML = '';
+      addItem();
+    }
+
+    document.getElementById('discount').addEventListener('input', calculate);
+    currencyInput.addEventListener('input', calculate);
+    document.getElementById('invoiceDate').value = new Date().toISOString().slice(0, 10);
+    addItem();
+  </script>
+</body>
+</html>
