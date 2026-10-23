@@ -16,7 +16,7 @@
     button.secondary { background:white; color:var(--ink); }
     .invoice { background:var(--paper); padding:38px; border:1px solid #e5e5e5; border-radius:10px; box-shadow:0 8px 30px #0000000a; }
     .top { display:flex; justify-content:space-between; gap:24px; padding-bottom:24px; border-bottom:2px solid var(--ink); }
-    .brand { font-size:28px; letter-spacing:2px; font-weight:800; margin:0 0 5px; }
+    .brand { font-family: "Mokoto", sans-serif; font-size:28px; letter-spacing:2px; font-weight:800; margin:0 0 5px; }
     .muted { color:var(--muted); }
     .editable { border:1px dashed transparent; border-radius:3px; padding:2px 4px; min-width:20px; }
     .editable:focus { outline:none; border-color:#999; background:#fafafa; }
@@ -70,6 +70,14 @@
       .editable { border-color:transparent !important; }
       th { background:#f1f1f1 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
       tr { break-inside:avoid; }
+    }
+
+    @font-face {
+    font-family: "Mokoto";
+    src: url("./assets/Mokoto.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
     }
   </style>
 </head>
